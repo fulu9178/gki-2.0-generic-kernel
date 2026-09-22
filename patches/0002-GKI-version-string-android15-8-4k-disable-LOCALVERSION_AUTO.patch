@@ -1,8 +1,8 @@
 From 896d8366ea2b530831713c982a5bbe2806e57ec7 Mon Sep 17 00:00:00 2001
 From: gki <gki@localhost>
 Date: Sun, 20 Sep 2026 19:21:38 +0800
-Subject: [PATCH 02/83] GKI: version string (empty LOCALVERSION, disable
- LOCALVERSION_AUTO)
+Subject: [PATCH 02/83] GKI: version string (-android15-8-4k), disable
+ LOCALVERSION_AUTO
 
 ---
  arch/arm64/configs/gki_defconfig | 3 ++-
