@@ -1,0 +1,138 @@
+From e63b0d08c6801fb7270a2c94e094ee725502c85f Mon Sep 17 00:00:00 2001
+From: gki <gki@localhost>
+Date: Tue, 22 Sep 2026 22:15:07 +0800
+Subject: [PATCH 84/84] lto: keep plain symbol names for statics internalized by
+ ThinLTO
+
+ThinLTO renames some file-static symbols to internal .llvm.<hash> names.
+Mark the affected definitions __used so they retain their plain names in
+vmlinux: __do_proc_dointvec, do_remove_key, flush_all_cpus_locked,
+kobj_attr_show, kobj_attr_store, max_bhb_k, neigh_flush_dev,
+__netdev_upper_dev_unlink and task_exit_notifier.
+---
+ arch/arm64/kernel/proton-pack.c | 2 +-
+ fs/crypto/keyring.c             | 2 +-
+ kernel/profile.c                | 2 +-
+ kernel/sysctl.c                 | 2 +-
+ lib/kobject.c                   | 4 ++--
+ mm/slub.c                       | 2 +-
+ net/core/dev.c                  | 2 +-
+ net/core/neighbour.c            | 2 +-
+ 8 files changed, 9 insertions(+), 9 deletions(-)
+
+diff --git a/arch/arm64/kernel/proton-pack.c b/arch/arm64/kernel/proton-pack.c
+index 19518a9da53f8..e01396f9cfbf1 100644
+--- a/arch/arm64/kernel/proton-pack.c
++++ b/arch/arm64/kernel/proton-pack.c
+@@ -977,7 +977,7 @@ static bool supports_ecbhb(int scope)
+ 						    ID_AA64MMFR1_EL1_ECBHB_SHIFT);
+ }
+ 
+-static u8 max_bhb_k;
++static u8 __used max_bhb_k;
+ 
+ bool is_spectre_bhb_affected(const struct arm64_cpu_capabilities *entry,
+ 			     int scope)
+diff --git a/fs/crypto/keyring.c b/fs/crypto/keyring.c
+index 97436c05d73db..e6f2232b20a9f 100644
+--- a/fs/crypto/keyring.c
++++ b/fs/crypto/keyring.c
+@@ -1022,7 +1022,7 @@ static int try_to_lock_encrypted_files(struct super_block *sb,
+  * For more details, see the "Removing keys" section of
+  * Documentation/filesystems/fscrypt.rst.
+  */
+-static int do_remove_key(struct file *filp, void __user *_uarg, bool all_users)
++static int __used do_remove_key(struct file *filp, void __user *_uarg, bool all_users)
+ {
+ 	struct super_block *sb = file_inode(filp)->i_sb;
+ 	struct fscrypt_remove_key_arg __user *uarg = _uarg;
+diff --git a/kernel/profile.c b/kernel/profile.c
+index d2e4a0380879f..7c70236f92333 100644
+--- a/kernel/profile.c
++++ b/kernel/profile.c
+@@ -129,7 +129,7 @@ int __ref profile_init(void)
+ 
+ /* Profile event notifications */
+ 
+-static BLOCKING_NOTIFIER_HEAD(task_exit_notifier);
++static __used BLOCKING_NOTIFIER_HEAD(task_exit_notifier);
+ static BLOCKING_NOTIFIER_HEAD(munmap_notifier);
+ 
+ void profile_task_exit(struct task_struct *task)
+diff --git a/kernel/sysctl.c b/kernel/sysctl.c
+index f42d7870e5f6b..5f7fbdab5f251 100644
+--- a/kernel/sysctl.c
++++ b/kernel/sysctl.c
+@@ -468,7 +468,7 @@ static int do_proc_douintvec_conv(unsigned long *lvalp,
+ 
+ static const char proc_wspace_sep[] = { ' ', '\t', '\n' };
+ 
+-static int __do_proc_dointvec(void *tbl_data, struct ctl_table *table,
++static int __used __do_proc_dointvec(void *tbl_data, struct ctl_table *table,
+ 		  int write, void *buffer,
+ 		  size_t *lenp, loff_t *ppos,
+ 		  int (*conv)(bool *negp, unsigned long *lvalp, int *valp,
+diff --git a/lib/kobject.c b/lib/kobject.c
+index 72fa20f405f15..073fe19d5a699 100644
+--- a/lib/kobject.c
++++ b/lib/kobject.c
+@@ -817,7 +817,7 @@ void kset_init(struct kset *k)
+ }
+ 
+ /* default kobject attribute operations */
+-static ssize_t kobj_attr_show(struct kobject *kobj, struct attribute *attr,
++static ssize_t __used kobj_attr_show(struct kobject *kobj, struct attribute *attr,
+ 			      char *buf)
+ {
+ 	struct kobj_attribute *kattr;
+@@ -829,7 +829,7 @@ static ssize_t kobj_attr_show(struct kobject *kobj, struct attribute *attr,
+ 	return ret;
+ }
+ 
+-static ssize_t kobj_attr_store(struct kobject *kobj, struct attribute *attr,
++static ssize_t __used kobj_attr_store(struct kobject *kobj, struct attribute *attr,
+ 			       const char *buf, size_t count)
+ {
+ 	struct kobj_attribute *kattr;
+diff --git a/mm/slub.c b/mm/slub.c
+index f97e39dfd6cdc..414984971cd34 100644
+--- a/mm/slub.c
++++ b/mm/slub.c
+@@ -2889,7 +2889,7 @@ static bool has_cpu_slab(int cpu, struct kmem_cache *s)
+ static DEFINE_MUTEX(flush_lock);
+ static DEFINE_PER_CPU(struct slub_flush_work, slub_flush);
+ 
+-static void flush_all_cpus_locked(struct kmem_cache *s)
++static void __used flush_all_cpus_locked(struct kmem_cache *s)
+ {
+ 	struct slub_flush_work *sfw;
+ 	unsigned int cpu;
+diff --git a/net/core/dev.c b/net/core/dev.c
+index 7ff4486fa790c..b1ca477141902 100644
+--- a/net/core/dev.c
++++ b/net/core/dev.c
+@@ -7922,7 +7922,7 @@ int netdev_master_upper_dev_link(struct net_device *dev,
+ }
+ EXPORT_SYMBOL(netdev_master_upper_dev_link);
+ 
+-static void __netdev_upper_dev_unlink(struct net_device *dev,
++static void __used __netdev_upper_dev_unlink(struct net_device *dev,
+ 				      struct net_device *upper_dev,
+ 				      struct netdev_nested_priv *priv)
+ {
+diff --git a/net/core/neighbour.c b/net/core/neighbour.c
+index 62c281e9bce98..1dbd317c5d888 100644
+--- a/net/core/neighbour.c
++++ b/net/core/neighbour.c
+@@ -377,7 +377,7 @@ static void pneigh_queue_purge(struct sk_buff_head *list, struct net *net,
+ 	}
+ }
+ 
+-static void neigh_flush_dev(struct neigh_table *tbl, struct net_device *dev,
++static void __used neigh_flush_dev(struct neigh_table *tbl, struct net_device *dev,
+ 			    bool skip_perm)
+ {
+ 	int i;
+-- 
+2.47.3
+
