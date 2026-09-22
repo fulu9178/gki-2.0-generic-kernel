@@ -1,11 +1,12 @@
 # GKI_ROOT GKI 6.6.158 Image 构建记录（plain make + 系统 LLVM 19，无 root）
 
 ## 目标
-构建 GKI 2.0（android15-6.6）单片（monolithic）Image，版本串 `6.6.158`。
+构建 GKI 2.0（android15-6.6）单片（monolithic）Image，版本串形如
+`6.6.<SUBLEVEL>-android15-8[-<可选后缀>]-4k`（默认 `6.6.158-android15-8-4k`）。
 
 - 基线：AOSP ACK `android15-6.6` tip，commit `448c303366032107c46d39006c8127a5ca967a26`
 - 补丁：`patches/` 共 84 个
-  - 3 个通用：vermagic/CRC 绕过、空 `LOCALVERSION`、`SUBLEVEL=158`
+  - 3 个通用：vermagic/CRC 绕过、`LOCALVERSION=-android15-8-4k`、`SUBLEVEL=158`
   - 1 个单片/LTO 配置：`0083-arm64-gki_defconfig-align-monolithic-image-with-Haru.patch`
   - 1 个 LTO 符号名：`0084-lto-keep-plain-symbol-names-for-statics-internalized.patch`
   - 79 条 stable 回补：`v6.6.143..v6.6.157`
@@ -54,17 +55,20 @@ ln -sf /usr/lib/x86_64-linux-gnu/libelf.so.1 libelf.so && rm -f libelf.a
 # 5) 配置
 . "$GKI_ROOT/scripts/env.sh"
 cd "$GKI_ROOT/common"
-make O=out ARCH=arm64 LLVM=1 LOCALVERSION= \
+make O=out ARCH=arm64 LLVM=1 \
      KCFLAGS=-D__ANDROID_COMMON_KERNEL__ \
      HOSTCFLAGS="-I$GKI_ROOT/hosttools/root/usr/include" gki_defconfig
 
 # 6) 编译（AutoFDO 必须绝对路径；LTO+AutoFDO 峰值约 15GB，默认 -j$(nproc)）
-make O=out ARCH=arm64 LLVM=1 LOCALVERSION= \
+make O=out ARCH=arm64 LLVM=1 \
      KCFLAGS=-D__ANDROID_COMMON_KERNEL__ \
      HOSTCFLAGS="-I$GKI_ROOT/hosttools/root/usr/include" \
      CLANG_AUTOFDO_PROFILE="$GKI_ROOT/common/android/gki/aarch64/afdo/kernel.afdo" \
      -j$(nproc) Image
 #   或："$GKI_ROOT/scripts/build.sh"   # LTO+AutoFDO 峰值约 15GB；仅 OOM 时用 JOBS=N 降并行
+#
+# 版本串默认取 gki_defconfig 的 CONFIG_LOCALVERSION="-android15-8-4k"；
+# 需要自定义后缀时追加 LOCALVERSION=<后缀> 覆盖（如 LOCALVERSION=-android15-8-custom-4k）。
 
 # 7) 校验
 strings out/arch/arm64/boot/Image | grep -m1 '6\.6\.158'
@@ -96,13 +100,15 @@ CONFIG_WQ_POWER_EFFICIENT_DEFAULT=y
 # CONFIG_LTO_NONE is not set
 # CONFIG_TRANSPARENT_HUGEPAGE_MADVISE is not set
 # CONFIG_PCIEASPM_DEFAULT is not set
-CONFIG_LOCALVERSION=""
+CONFIG_LOCALVERSION="-android15-8-4k"
 # CONFIG_LOCALVERSION_AUTO is not set
 ```
 
 ## 版本串
 `KERNELVERSION`（`Makefile`：`VERSION=6 PATCHLEVEL=6 SUBLEVEL=158`）= `6.6.158`；
-`CONFIG_LOCALVERSION=""` + `LOCALVERSION_AUTO` 关闭 + `LOCALVERSION` 为空 → `uname -r` 输出 `6.6.158`。
+`CONFIG_LOCALVERSION="-android15-8-4k"` + `LOCALVERSION_AUTO` 关闭 → `uname -r` 输出
+`6.6.158-android15-8-4k`。其中 `-android15-8` 对应 KMI（`KMI_GENERATION=8`）、`-4k` 为页大小；
+需要自定义后缀可在 `gki_defconfig` 改 `CONFIG_LOCALVERSION` 或构建时传 `LOCALVERSION=<后缀>`。
 
 ## 打包
 ```bash
